@@ -1,0 +1,26 @@
+:name: CAN bus onboarding
+:description: Three Dev-A boards (node1, node2, node3) on one CAN bus
+
+# The "wire": every CAN controller connected to canHub sees every frame.
+emulation CreateCANHub "canHub"
+
+mach create "node1"
+machine LoadPlatformDescription $ORIGIN/dev-a.repl
+sysbus LoadELF $ORIGIN/../build/node1.elf
+connector Connect sysbus.can1 canHub
+showAnalyzer sysbus.usart6 Antmicro.Renode.Analyzers.LoggingUartAnalyzer
+
+mach create "node2"
+machine LoadPlatformDescription $ORIGIN/dev-a.repl
+sysbus LoadELF $ORIGIN/../build/node2.elf
+connector Connect sysbus.can1 canHub
+showAnalyzer sysbus.usart6 Antmicro.Renode.Analyzers.LoggingUartAnalyzer
+
+mach create "node3"
+machine LoadPlatformDescription $ORIGIN/dev-a.repl
+sysbus LoadELF $ORIGIN/../build/node3.elf
+connector Connect sysbus.can1 canHub
+showAnalyzer sysbus.usart6 Antmicro.Renode.Analyzers.LoggingUartAnalyzer
+
+# `make sim` adds "start" at the end. In the Monitor window you can also type:
+#   start / pause / quit

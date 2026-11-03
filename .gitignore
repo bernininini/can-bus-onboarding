@@ -1,0 +1,7 @@
+build/
+log.html
+report.html
+robot_output.xml
+snapshots/
+logs/
+.DS_Store

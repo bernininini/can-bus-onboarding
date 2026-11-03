@@ -1,0 +1,49 @@
+// RoboMaster Development Board Type A (STM32F427IIH6), as much of it as
+// this project uses. Starts from Renode's generic STM32F4 description.
+using "platforms/cpus/stm32f4.repl"
+
+// The firmware runs the core, and so SysTick, at 180 MHz.
+// The generic file assumes 72 MHz, which would make every delay 2.5x too long.
+nvic:
+    systickFrequency: 180000000
+
+// Renode model fix: on real bxCAN, setting INRQ in CAN_MCR enters init mode
+// even while SLEEP is still set, and HAL_CAN_Init() relies on that. Renode's
+// model only enters init mode once SLEEP is clear, so the HAL would time out.
+// This hook clears SLEEP whenever INRQ is written, which matches the hardware.
+sysbus:
+    init add:
+        SetHookBeforePeripheralWrite can1 "if offset == 0 and (value & 0x1): value = value & ~0x2"
+
+// The generic file has no USART6, so add it (USART6 is IRQ 71 on the STM32F4).
+usart6: UART.STM32_UART @ sysbus <0x40011400, +0x100>
+    -> nvic@71
+
+// The 8 user LEDs, LED_A..LED_H on PG1..PG8. They are active-low
+// (the LED is on when the pin is low), hence "invert".
+led_a: Miscellaneous.LED @ gpioPortG 1
+    invert: true
+led_b: Miscellaneous.LED @ gpioPortG 2
+    invert: true
+led_c: Miscellaneous.LED @ gpioPortG 3
+    invert: true
+led_d: Miscellaneous.LED @ gpioPortG 4
+    invert: true
+led_e: Miscellaneous.LED @ gpioPortG 5
+    invert: true
+led_f: Miscellaneous.LED @ gpioPortG 6
+    invert: true
+led_g: Miscellaneous.LED @ gpioPortG 7
+    invert: true
+led_h: Miscellaneous.LED @ gpioPortG 8
+    invert: true
+
+gpioPortG:
+    1 -> led_a@0
+    2 -> led_b@0
+    3 -> led_c@0
+    4 -> led_d@0
+    5 -> led_e@0
+    6 -> led_f@0
+    7 -> led_g@0
+    8 -> led_h@0

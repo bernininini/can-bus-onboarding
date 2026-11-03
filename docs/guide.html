@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CAN Bus Basics: Embedded Onboarding</title>
+<style>
+  @page {
+    size: Letter;
+    margin: 17mm 17mm 18mm 17mm;
+    @bottom-center { content: counter(page); font: 8.5pt -apple-system, "Helvetica Neue", Arial, sans-serif; color: #888; }
+    @bottom-right { content: "CAN Bus Basics"; font: 8.5pt -apple-system, "Helvetica Neue", Arial, sans-serif; color: #aaa; }
+  }
+  @page :first { @bottom-center { content: none; } @bottom-right { content: none; } }
+
+  :root {
+    --ink: #1b1d21;
+    --muted: #5d6470;
+    --line: #d9dde3;
+    --soft: #f4f6f9;
+    --accent: #2453b8;
+    --accent-soft: #e8eefb;
+    --red: #c63a3a;
+    --blue: #2f6fd0;
+    --green: #237a46;
+    --green-soft: #e7f4ec;
+    --amber: #9a6200;
+    --amber-soft: #fdf3df;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--ink);
+    font: 10.2pt/1.5 -apple-system, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  }
+  main { max-width: 7.2in; margin: 0 auto; }
+
+  h1, h2, h3 { line-height: 1.25; break-after: avoid; }
+  h1 { font-size: 19pt; margin: 0 0 10pt; padding-top: 2pt; }
+  h1 .num { color: var(--accent); margin-right: 6pt; }
+  h2 { font-size: 13pt; margin: 18pt 0 6pt; }
+  h3 { font-size: 11pt; margin: 14pt 0 4pt; }
+  section.chapter { break-before: page; }
+  section.flow { margin-top: 26pt; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 18pt; }
+  li { margin: 2pt 0; }
+  a { color: var(--accent); text-decoration: none; }
+  strong { font-weight: 650; }
+
+  code, pre, kbd { font-family: "SF Mono", Menlo, Consolas, monospace; }
+  code { font-size: 8.9pt; background: var(--soft); padding: 0.5pt 3pt; border-radius: 3px; }
+  pre {
+    font-size: 8.4pt; line-height: 1.45;
+    background: var(--soft); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 4px; padding: 7pt 9pt; margin: 4pt 0 10pt;
+    white-space: pre-wrap; break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre.term { border-left-color: #444; background: #f7f7f7; }
+  pre.out { border-left-color: var(--green); background: #f6faf7; }
+  kbd { font-size: 8.5pt; border: 1px solid #bbb; border-bottom-width: 2px; border-radius: 3px; padding: 0 3pt; background: #fff; }
+  .hl { background: #fff1a8; }
+
+  table { border-collapse: collapse; width: 100%; margin: 4pt 0 10pt; font-size: 9.4pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 4pt 6pt; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 600; }
+  td code { white-space: nowrap; }
+
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 8pt 11pt; margin: 8pt 0 11pt; break-inside: avoid; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .tag { font-weight: 700; font-size: 8.5pt; letter-spacing: .05em; text-transform: uppercase; display: block; margin-bottom: 3pt; }
+  .note { background: var(--accent-soft); border-color: #c7d5f3; }
+  .note .tag { color: var(--accent); }
+  .warn { background: var(--amber-soft); border-color: #f0d9a8; }
+  .warn .tag { color: var(--amber); }
+  .check { background: var(--green-soft); border-color: #bfe0cb; }
+  .check .tag { color: var(--green); }
+
+  ol.steps { list-style: none; counter-reset: step; padding-left: 0; }
+  ol.steps > li { counter-increment: step; position: relative; padding-left: 24pt; margin: 6pt 0 9pt; }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 15pt; height: 15pt; border-radius: 50%; background: var(--accent); color: #fff;
+    font-size: 8.5pt; font-weight: 700; text-align: center; line-height: 15pt;
+  }
+
+  figure { margin: 6pt 0 12pt; break-inside: avoid; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 8.8pt; color: var(--muted); margin-top: 4pt; }
+
+  /* cover */
+  .cover { height: 9.2in; display: flex; flex-direction: column; }
+  .cover .kicker { font-size: 10pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-top: 0.6in; }
+  .cover h1 { font-size: 36pt; margin: 6pt 0 8pt; letter-spacing: -0.5pt; }
+  .cover .sub { font-size: 13pt; color: var(--muted); max-width: 5.6in; }
+  .cover .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10pt; margin: 26pt 0 18pt; }
+  .cover .facts div { border-top: 2px solid var(--accent); padding-top: 5pt; font-size: 9.4pt; }
+  .cover .facts b { display: block; font-size: 8pt; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2pt; }
+  .toc { margin-top: auto; font-size: 9.6pt; columns: 2; column-gap: 24pt; }
+  .toc div { break-inside: avoid; padding: 1.5pt 0; }
+  .toc .n { display: inline-block; width: 22pt; color: var(--accent); font-weight: 700; }
+  .bits { table-layout: fixed; }
+  .bits td, .bits th { text-align: center; padding: 3pt 0; font-family: "SF Mono", Menlo, monospace; font-size: 8.8pt; }
+  .bits td:first-child, .bits th:first-child { text-align: left; padding-left: 6pt; font-family: inherit; width: 1.5in; }
+  .bits .win { background: var(--green-soft); font-weight: 700; }
+  .bits .lose { background: #fbe6e6; }
+  .small { font-size: 9pt; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<!-- ============================================================ COVER -->
+<section class="cover">
+  <div class="kicker">Embedded onboarding · Control team</div>
+  <h1>CAN Bus Basics</h1>
+  <p class="sub">Three simulated RoboMaster Dev-A boards talking over one CAN bus. You write real STM32 HAL code and run it in the Renode simulator. No hardware is needed until chapter 8.</p>
+
+  <div class="facts">
+    <div><b>Time</b>About 2 hours</div>
+    <div><b>You need</b>A GitHub account (for Codespaces) or a computer with Renode and the ARM compiler</div>
+    <div><b>You'll learn</b>CAN frames, IDs, filters, bit timing, and how to send and receive with the STM32 HAL</div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 680 230" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica Neue, Arial, sans-serif">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6470"/></marker>
+      </defs>
+      <!-- bus wires -->
+      <line x1="30" y1="166" x2="650" y2="166" stroke="#c63a3a" stroke-width="3"/>
+      <line x1="30" y1="200" x2="650" y2="200" stroke="#2f6fd0" stroke-width="3"/>
+      <text x="652" y="158" font-size="11" font-weight="700" fill="#c63a3a" text-anchor="end">CAN_H</text>
+      <text x="652" y="216" font-size="11" font-weight="700" fill="#2f6fd0" text-anchor="end">CAN_L</text>
+      <!-- terminators -->
+      <rect x="22" y="172" width="16" height="22" rx="2" fill="#fff" stroke="#1b1d21" stroke-width="1.5"/>
+      <line x1="30" y1="166" x2="30" y2="172" stroke="#1b1d21" stroke-width="1.5"/>
+      <line x1="30" y1="194" x2="30" y2="200" stroke="#1b1d21" stroke-width="1.5"/>
+      <text x="44" y="187" font-size="10" fill="#1b1d21">120 Ω</text>
+      <rect x="642" y="172" width="16" height="22" rx="2" fill="#fff" stroke="#1b1d21" stroke-width="1.5"/>
+      <line x1="650" y1="166" x2="650" y2="172" stroke="#1b1d21" stroke-width="1.5"/>
+      <line x1="650" y1="194" x2="650" y2="200" stroke="#1b1d21" stroke-width="1.5"/>
+      <text x="636" y="187" font-size="10" fill="#1b1d21" text-anchor="end">120 Ω</text>
+
+      <!-- boards -->
+      <g>
+        <rect x="80" y="8" width="150" height="122" rx="7" fill="#f4f6f9" stroke="#9aa3b0"/>
+        <text x="155" y="25" font-size="12" font-weight="700" text-anchor="middle" fill="#1b1d21">node1 · Dev-A</text>
+        <text x="155" y="39" font-size="9.5" text-anchor="middle" fill="#5d6470">ID 0x101 · every 500 ms</text>
+        <rect x="96" y="46" width="118" height="26" rx="4" fill="#e8eefb" stroke="#2453b8"/>
+        <text x="155" y="63" font-size="10.5" text-anchor="middle" fill="#2453b8">STM32F427 · bxCAN</text>
+        <rect x="96" y="88" width="118" height="26" rx="4" fill="#fff" stroke="#5d6470"/>
+        <text x="155" y="105" font-size="10.5" text-anchor="middle" fill="#1b1d21">MCP2562 transceiver</text>
+        <line x1="140" y1="72" x2="140" y2="88" stroke="#5d6470" marker-end="url(#ah)"/>
+        <line x1="170" y1="88" x2="170" y2="72" stroke="#5d6470" marker-end="url(#ah)"/>
+        <text x="136" y="83" font-size="8" text-anchor="end" fill="#5d6470">TX</text>
+        <text x="174" y="83" font-size="8" fill="#5d6470">RX</text>
+        <line x1="140" y1="114" x2="140" y2="166" stroke="#c63a3a" stroke-width="1.6"/>
+        <line x1="170" y1="114" x2="170" y2="200" stroke="#2f6fd0" stroke-width="1.6"/>
+        <circle cx="140" cy="166" r="3.2" fill="#c63a3a"/><circle cx="170" cy="200" r="3.2" fill="#2f6fd0"/>
+      </g>
+      <g>
+        <rect x="265" y="8" width="150" height="122" rx="7" fill="#f4f6f9" stroke="#9aa3b0"/>
+        <text x="340" y="25" font-size="12" font-weight="700" text-anchor="middle" fill="#1b1d21">node2 · Dev-A</text>
+        <text x="340" y="39" font-size="9.5" text-anchor="middle" fill="#5d6470">ID 0x102 · every 600 ms</text>
+        <rect x="281" y="46" width="118" height="26" rx="4" fill="#e8eefb" stroke="#2453b8"/>
+        <text x="340" y="63" font-size="10.5" text-anchor="middle" fill="#2453b8">STM32F427 · bxCAN</text>
+        <rect x="281" y="88" width="118" height="26" rx="4" fill="#fff" stroke="#5d6470"/>
+        <text x="340" y="105" font-size="10.5" text-anchor="middle" fill="#1b1d21">MCP2562 transceiver</text>
+        <line x1="325" y1="72" x2="325" y2="88" stroke="#5d6470" marker-end="url(#ah)"/>
+        <line x1="355" y1="88" x2="355" y2="72" stroke="#5d6470" marker-end="url(#ah)"/>
+        <line x1="325" y1="114" x2="325" y2="166" stroke="#c63a3a" stroke-width="1.6"/>
+        <line x1="355" y1="114" x2="355" y2="200" stroke="#2f6fd0" stroke-width="1.6"/>
+        <circle cx="325" cy="166" r="3.2" fill="#c63a3a"/><circle cx="355" cy="200" r="3.2" fill="#2f6fd0"/>
+      </g>
+      <g>
+        <rect x="450" y="8" width="150" height="122" rx="7" fill="#f4f6f9" stroke="#9aa3b0"/>
+        <text x="525" y="25" font-size="12" font-weight="700" text-anchor="middle" fill="#1b1d21">node3 · Dev-A</text>
+        <text x="525" y="39" font-size="9.5" text-anchor="middle" fill="#5d6470">ID 0x103 · every 700 ms</text>
+        <rect x="466" y="46" width="118" height="26" rx="4" fill="#e8eefb" stroke="#2453b8"/>
+        <text x="525" y="63" font-size="10.5" text-anchor="middle" fill="#2453b8">STM32F427 · bxCAN</text>
+        <rect x="466" y="88" width="118" height="26" rx="4" fill="#fff" stroke="#5d6470"/>
+        <text x="525" y="105" font-size="10.5" text-anchor="middle" fill="#1b1d21">MCP2562 transceiver</text>
+        <line x1="510" y1="72" x2="510" y2="88" stroke="#5d6470" marker-end="url(#ah)"/>
+        <line x1="540" y1="88" x2="540" y2="72" stroke="#5d6470" marker-end="url(#ah)"/>
+        <line x1="510" y1="114" x2="510" y2="166" stroke="#c63a3a" stroke-width="1.6"/>
+        <line x1="540" y1="114" x2="540" y2="200" stroke="#2f6fd0" stroke-width="1.6"/>
+        <circle cx="510" cy="166" r="3.2" fill="#c63a3a"/><circle cx="540" cy="200" r="3.2" fill="#2f6fd0"/>
+      </g>
+    </svg>
+    <figcaption>What you'll build. Three boards run the same firmware and share one CAN bus. In the simulator, the wires, transceivers and resistors are replaced by a single virtual “CAN hub”.</figcaption>
+  </figure>
+
+  <div class="toc">
+    <div><span class="n">1</span>What you'll build</div>
+    <div><span class="n">2</span>CAN in ten minutes</div>
+    <div><span class="n">3</span>Set up</div>
+    <div><span class="n">4</span>Build and run the simulation</div>
+    <div><span class="n">5</span>Walk through the code</div>
+    <div><span class="n">6</span>Exercises</div>
+    <div><span class="n">7</span>Check your work automatically</div>
+    <div><span class="n">8</span>From the simulator to real boards</div>
+    <div><span class="n">9</span>Troubleshooting</div>
+    <div><span class="n">A</span>Solutions</div>
+    <div><span class="n">B</span>DJI motor CAN frames</div>
+    <div><span class="n">C</span>Renode cheat sheet</div>
+  </div>
+</section>
+
+<!-- ============================================================ 1 -->
+<section class="chapter">
+<h1><span class="num">1</span>What you'll build</h1>
+
+<p>On the robot, the main controller talks to the motors, the gimbal and the other boards over <strong>CAN</strong>. Before you touch a real robot, you'll learn CAN on three <em>simulated</em> RoboMaster Development Board Type A (“Dev-A”, STM32F427IIH6) boards.</p>
+
+<p>Each board runs the <strong>same firmware</strong>. The only difference is a number, <code>NODE_ID</code> (1, 2 or 3). Every board:</p>
+<ol>
+  <li>sends a small <strong>heartbeat</strong> frame on the bus at its own period, and</li>
+  <li>prints every frame it receives on its serial port (USART6) and shows a counter from the frame in binary on its 8 LEDs.</li>
+</ol>
+
+<table>
+  <tr><th>Board</th><th>CAN ID it sends</th><th>Period</th><th>Data bytes</th></tr>
+  <tr><td>node1</td><td><code>0x101</code></td><td>500 ms</td><td><code>01</code>, counter</td></tr>
+  <tr><td>node2</td><td><code>0x102</code></td><td>600 ms</td><td><code>02</code>, counter</td></tr>
+  <tr><td>node3</td><td><code>0x103</code></td><td>700 ms</td><td><code>03</code>, counter</td></tr>
+</table>
+
+<h2>Why a simulator?</h2>
+<p><strong>Renode</strong> is an open-source simulator from Antmicro. It runs the exact <code>.elf</code> file you would flash onto a board, with the CPU, timers, GPIO, UART and CAN controller emulated. You can run three boards, connect them to one virtual bus and watch every frame without wiring anything or bricking a board.</p>
+
+<div class="box warn"><span class="tag">Keep in mind</span>
+<p>A simulator is not the real thing. Renode does not simulate wiring, pin choice, bit timing or bus errors. Chapter 8 lists exactly what changes on real boards. Read it before your first hardware session.</p>
+</div>
+
+<h2>What's in the repository</h2>
+<pre class="term"><code>can-bus-onboarding/
+├── Makefile                  make · make sim · make test
+├── firmware/
+│   ├── Core/Src/main.c       ← the file you will edit
+│   ├── Core/Src/stm32f4xx_hal_msp.c   pins, clocks and interrupts for CAN1 and USART6
+│   ├── Core/Src/stm32f4xx_it.c        interrupt handlers
+│   ├── Core/Inc/…            headers, HAL configuration
+│   ├── Drivers/              ST's HAL and CMSIS (unchanged)
+│   └── STM32F427IIHX_FLASH.ld         linker script
+├── sim/
+│   ├── dev-a.repl            the simulated Dev-A board
+│   ├── can_bus.resc          three boards + one CAN bus
+│   └── can_bus.robot         the automatic test
+├── docs/                     this guide
+└── .devcontainer/            setup for GitHub Codespaces</code></pre>
+<p>The layout matches a project generated by STM32CubeMX, so what you learn here carries straight over to your team's real code.</p>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter">
+<h1><span class="num">2</span>CAN in ten minutes</h1>
+
+<h2>2.1 One pair of wires, many boards</h2>
+<p>A CAN bus is two wires, <strong>CAN_H</strong> and <strong>CAN_L</strong>, usually twisted together. Every board connects to the same two wires, in parallel. A <strong>120 Ω resistor at each end</strong> of the bus stops signals from reflecting back.</p>
+<p>The bus only has two states:</p>
+<ul>
+  <li><strong>Dominant = logic 0.</strong> A transmitter pushes CAN_H up and CAN_L down.</li>
+  <li><strong>Recessive = logic 1.</strong> Nobody drives the bus; the resistors pull CAN_H and CAN_L to the same voltage.</li>
+</ul>
+<p>If any one board sends a 0, the whole bus reads 0. <strong>“0 wins”</strong> is the most important rule in CAN; it makes arbitration and ACK work (see 2.5 and 2.6).</p>
+<p>Because the receiver looks at the <em>difference</em> between the two wires, noise that hits both wires equally cancels out. That's why CAN survives next to motors.</p>
+
+<h2>2.2 Inside each board</h2>
+<ul>
+  <li>The <strong>CAN controller</strong> lives inside the microcontroller. On the STM32F4 it's called <strong>bxCAN</strong> (there are two: CAN1 and CAN2). It builds frames, handles timing, CRC, ACK and retries, and filters incoming frames. Your code only ever talks to the controller, through the HAL.</li>
+  <li>The <strong>transceiver</strong> is a separate chip (an MCP2562 on the Dev-A). It converts the controller's TX/RX logic pins into CAN_H/CAN_L voltages and back.</li>
+</ul>
+<p>bxCAN has <strong>3 transmit mailboxes</strong> (frames waiting to go out), <strong>2 receive FIFOs</strong> that hold 3 frames each, and <strong>28 filter banks</strong> shared between CAN1 and CAN2.</p>
+
+<h2>2.3 A CAN frame</h2>
+<figure>
+  <svg viewBox="0 0 700 132" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica Neue, Arial, sans-serif">
+    <g font-size="10" text-anchor="middle">
+      <text x="27" y="14" fill="#5d6470">1</text>
+      <text x="119" y="14" fill="#5d6470">11 bits</text>
+      <text x="211" y="14" fill="#5d6470">1</text>
+      <text x="245" y="14" fill="#5d6470">1</text>
+      <text x="277" y="14" fill="#5d6470">1</text>
+      <text x="322" y="14" fill="#5d6470">4</text>
+      <text x="437" y="14" fill="#5d6470">0–64 bits</text>
+      <text x="557" y="14" fill="#5d6470">16</text>
+      <text x="614" y="14" fill="#5d6470">2</text>
+      <text x="663" y="14" fill="#5d6470">7</text>
+    </g>
+    <g stroke="#1b1d21" stroke-width="1">
+      <rect x="10" y="22" width="34" height="40" fill="#eef0f3"/>
+      <rect x="44" y="22" width="150" height="40" fill="#e8eefb" stroke="#2453b8" stroke-width="1.6"/>
+      <rect x="194" y="22" width="34" height="40" fill="#eef0f3"/>
+      <rect x="228" y="22" width="34" height="40" fill="#eef0f3"/>
+      <rect x="262" y="22" width="30" height="40" fill="#eef0f3"/>
+      <rect x="292" y="22" width="60" height="40" fill="#e8eefb" stroke="#2453b8" stroke-width="1.6"/>
+      <rect x="352" y="22" width="170" height="40" fill="#e8eefb" stroke="#2453b8" stroke-width="1.6"/>
+      <rect x="522" y="22" width="70" height="40" fill="#eef0f3"/>
+      <rect x="592" y="22" width="44" height="40" fill="#eef0f3"/>
+      <rect x="636" y="22" width="54" height="40" fill="#eef0f3"/>
+    </g>
+    <g font-size="11" text-anchor="middle" fill="#1b1d21">
+      <text x="27" y="46">SOF</text>
+      <text x="119" y="46" font-weight="700" fill="#2453b8">Identifier</text>
+      <text x="211" y="46">RTR</text>
+      <text x="245" y="46">IDE</text>
+      <text x="277" y="46">r0</text>
+      <text x="322" y="46" font-weight="700" fill="#2453b8">DLC</text>
+      <text x="437" y="46" font-weight="700" fill="#2453b8">Data (0–8 bytes)</text>
+      <text x="557" y="46">CRC</text>
+      <text x="614" y="46">ACK</text>
+      <text x="663" y="46">EOF</text>
+    </g>
+    <path d="M44 72 v6 h478 v-6" fill="none" stroke="#2453b8" stroke-width="1.4"/>
+    <text x="283" y="94" font-size="10.5" text-anchor="middle" fill="#2453b8">you set ID, DLC and data in your code (plus RTR and IDE)</text>
+    <text x="350" y="120" font-size="10.5" text-anchor="middle" fill="#5d6470">everything grey is added and checked by the CAN controller for you</text>
+  </svg>
+  <figcaption>A standard CAN data frame. At 1 Mbit/s an 8-byte frame takes about 0.13 ms.</figcaption>
+</figure>
+
+<table>
+  <tr><th>Field</th><th>Meaning</th><th>In the HAL</th></tr>
+  <tr><td>Identifier</td><td>11-bit number (0x000–0x7FF) that says <em>what</em> the message is. Also its priority.</td><td><code>header.StdId</code></td></tr>
+  <tr><td>RTR</td><td>Data frame (normal) or remote request (rarely used).</td><td><code>header.RTR = CAN_RTR_DATA</code></td></tr>
+  <tr><td>IDE</td><td>Standard 11-bit ID or extended 29-bit ID.</td><td><code>header.IDE = CAN_ID_STD</code></td></tr>
+  <tr><td>DLC</td><td>Data Length Code: how many data bytes follow (0–8).</td><td><code>header.DLC</code></td></tr>
+  <tr><td>Data</td><td>Up to 8 bytes. What they mean is up to you (or the motor's manual).</td><td><code>uint8_t data[8]</code></td></tr>
+</table>
+
+<h2>2.4 Everyone hears everything</h2>
+<p>CAN has <strong>no addresses</strong>. When a board sends a frame, <em>every</em> other board on the bus receives it. The ID tells receivers what the message is about; each receiver decides whether it cares. The CAN controller can do that sorting in hardware with <strong>filters</strong>, so your code never sees frames it doesn't want. A board never receives its own frames.</p>
+
+<h2>2.5 IDs are priorities: arbitration</h2>
+<p>What if two boards start sending at the same moment? Both send their ID bit by bit, most significant bit first, and both listen to the bus while they send. Because 0 wins, as soon as one board sends a 1 but reads back a 0, it knows someone with a <strong>lower ID</strong> is also sending. It stops and tries again after the bus is free. The winner never notices and no data is lost.</p>
+<table class="bits">
+  <tr><th>Bit</th><th>10</th><th>9</th><th>8</th><th>7</th><th>6</th><th>5</th><th>4</th><th>3</th><th>2</th><th>1</th><th>0</th></tr>
+  <tr><td>node1 sends 0x101</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="win">0</td><td>1</td></tr>
+  <tr><td>node2 sends 0x102</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="lose">1 ✗</td><td></td></tr>
+  <tr><td>bus</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="win">0</td><td>1</td></tr>
+</table>
+<p>The lower the ID, the higher the priority. That's why DJI motor <em>commands</em> use ID 0x200 and the motors' <em>feedback</em> uses 0x201 and up.</p>
+
+<h2>2.6 ACK: somebody has to answer</h2>
+<p>In the ACK slot of every frame the sender transmits a 1, and every receiver that got the frame correctly overwrites it with a 0. If the sender reads back a 1, nobody received the frame. It reports an error and sends again, forever.</p>
+<div class="box warn"><span class="tag">Common first-day bug</span>
+<p>A board alone on the bus never gets an ACK, so its 3 transmit mailboxes fill up and stay full. Same if the other board isn't running, or uses a different bit rate. The firmware in this project prints <code>tx skipped: all 3 mailboxes busy</code> when that happens.</p>
+</div>
+
+<h2>2.7 Bit rate and bit timing</h2>
+<p>All boards on a bus must use the <strong>same bit rate</strong>. RoboMaster robots use <strong>1 Mbit/s</strong>, the rate DJI motors and ESCs expect. The controller splits each bit into small time slices called <strong>time quanta (tq)</strong> and reads the bus at the <strong>sample point</strong>, near the end of the bit:</p>
+<figure>
+  <svg viewBox="0 0 680 120" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica Neue, Arial, sans-serif">
+    <g stroke="#fff" stroke-width="1.5">
+      <rect x="40" y="38" width="40" height="34" fill="#1b1d21"/>
+      <rect x="80" y="38" width="40" height="34" fill="#7f9ee0"/><rect x="120" y="38" width="40" height="34" fill="#7f9ee0"/>
+      <rect x="160" y="38" width="40" height="34" fill="#7f9ee0"/><rect x="200" y="38" width="40" height="34" fill="#7f9ee0"/>
+      <rect x="240" y="38" width="40" height="34" fill="#7f9ee0"/><rect x="280" y="38" width="40" height="34" fill="#7f9ee0"/>
+      <rect x="320" y="38" width="40" height="34" fill="#7f9ee0"/><rect x="360" y="38" width="40" height="34" fill="#7f9ee0"/>
+      <rect x="400" y="38" width="40" height="34" fill="#7f9ee0"/><rect x="440" y="38" width="40" height="34" fill="#7f9ee0"/>
+      <rect x="480" y="38" width="40" height="34" fill="#7f9ee0"/>
+      <rect x="520" y="38" width="40" height="34" fill="#e3a33b"/><rect x="560" y="38" width="40" height="34" fill="#e3a33b"/><rect x="600" y="38" width="40" height="34" fill="#e3a33b"/>
+    </g>
+    <g font-size="10.5" text-anchor="middle" fill="#1b1d21">
+      <text x="60" y="28">SYNC</text>
+      <text x="300" y="28">BS1 = 11 tq</text>
+      <text x="580" y="28">BS2 = 3 tq</text>
+    </g>
+    <line x1="520" y1="30" x2="520" y2="84" stroke="#c63a3a" stroke-width="2"/>
+    <path d="M514 84 L520 94 L526 84 z" fill="#c63a3a"/>
+    <text x="520" y="108" font-size="10.5" text-anchor="middle" fill="#c63a3a" font-weight="700">sample point (80 %)</text>
+    <text x="40" y="96" font-size="10" fill="#5d6470">1 bit = 15 tq = 1 µs</text>
+  </svg>
+  <figcaption>The bit timing used in this project: 45 MHz ÷ 3 = 15 MHz, so 1 tq = 66.7 ns; 15 tq = 1 µs per bit = 1 Mbit/s.</figcaption>
+</figure>
+<p>You'll see how these numbers are set in code in section 5.3.</p>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter">
+<h1><span class="num">3</span>Set up</h1>
+<p>You need two tools: the <strong>ARM GCC compiler</strong> (<code>arm-none-eabi-gcc</code>) to build the firmware, and <strong>Renode 1.17</strong> to run it. Pick one option.</p>
+
+<h2>Option A: GitHub Codespaces (recommended, nothing to install)</h2>
+<p>A Codespace is a Linux computer in the cloud with VS Code in your browser. The repository tells it what to install.</p>
+<ol class="steps">
+  <li>Open the repository on GitHub: <a href="https://github.com/bernininini/can-bus-onboarding">github.com/bernininini/can-bus-onboarding</a> (or your team's copy). If you see a 404, ask your lead to give you access.</li>
+  <li>Click the green <strong>Code</strong> button → <strong>Codespaces</strong> tab → <strong>Create codespace on main</strong>.</li>
+  <li>Wait for the setup to finish. The first time takes 3–5 minutes; the terminal at the bottom shows <code>.devcontainer/setup.sh</code> installing things. It's done when it prints:
+<pre class="out"><code>arm-none-eabi-gcc (15:13.2.rel1-2) 13.2.1 20231009
+Renode v1.17.0</code></pre></li>
+  <li>Click into the terminal and carry on with chapter 4.</li>
+</ol>
+<div class="box note"><span class="tag">Good to know</span>
+<p>Personal GitHub accounts get a free monthly Codespaces allowance (enough for many hours on the default 2-core machine). When you're done, stop the codespace from <a href="https://github.com/codespaces">github.com/codespaces</a>; it also stops by itself after 30 minutes of inactivity. Your files are kept.</p>
+</div>
+
+<h2>Option B: your own computer</h2>
+<h3>Linux (Ubuntu 24.04) or Windows (WSL 2 with Ubuntu 24.04)</h3>
+<p>On Windows, first install WSL: open PowerShell as administrator, run <code>wsl --install -d Ubuntu-24.04</code>, restart, and open “Ubuntu” from the Start menu. Then, in the Ubuntu terminal:</p>
+<pre class="term"><code>git clone https://github.com/bernininini/can-bus-onboarding.git
+cd can-bus-onboarding
+bash .devcontainer/setup.sh       # installs gcc-arm-none-eabi and Renode (asks for your password)</code></pre>
+
+<h3>macOS (Apple Silicon)</h3>
+<ol class="steps">
+  <li>Download <code>renode-1.17.0.osx-arm64-portable.dmg</code> from <a href="https://github.com/renode/renode/releases/tag/v1.17.0">github.com/renode/renode/releases/tag/v1.17.0</a>, open it and drag <strong>Renode.app</strong> into Applications.</li>
+  <li>Install the ARM compiler: either <code>brew install --cask gcc-arm-embedded</code>, or download <code>arm-gnu-toolchain-14.3.rel1-darwin-arm64-arm-none-eabi.tar.xz</code> from <a href="https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads">developer.arm.com</a> and unpack it.
+  <br><span class="small">The compiler that ships with STM32CubeIDE/CubeCLT is built for Intel Macs and only runs on Apple Silicon if Rosetta is installed.</span></li>
+  <li>Clone the repository and tell <code>make</code> where the tools are (only needed if they're not on your <code>PATH</code>):
+<pre class="term"><code>git clone https://github.com/bernininini/can-bus-onboarding.git
+cd can-bus-onboarding
+export RENODE=/Applications/Renode.app/Contents/MacOS/renode
+export PREFIX=$HOME/arm-gnu-toolchain-14.3.rel1-darwin-arm64-arm-none-eabi/bin/arm-none-eabi-</code></pre></li>
+</ol>
+<div class="box note"><span class="tag">macOS security prompt</span>
+<p>If macOS says Renode “can't be opened because Apple cannot check it”, right-click Renode.app → <strong>Open</strong> once, or allow it under System Settings → Privacy &amp; Security.</p>
+</div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section class="chapter">
+<h1><span class="num">4</span>Build and run the simulation</h1>
+
+<ol class="steps">
+  <li><strong>Build the firmware.</strong> From the repository folder:
+<pre class="term"><code>make</code></pre>
+  This compiles the same code three times, once with <code>-DNODE_ID=1</code>, once with 2 and once with 3, and ends with:
+<pre class="out"><code>LD  build/node3.elf
+   text    data     bss     dec     hex filename
+  13172     112    2320   15604    3cf4 build/node3.elf</code></pre>
+  You now have <code>build/node1.elf</code>, <code>node2.elf</code> and <code>node3.elf</code>: one file per board.</li>
+
+  <li><strong>Start the simulation.</strong>
+<pre class="term"><code>make sim</code></pre>
+  Renode loads <code>sim/can_bus.resc</code>, which creates three Dev-A boards, loads one <code>.elf</code> into each, connects all three CAN1 controllers to one virtual bus, and starts them. The first run downloads a small register-description file, so you need internet.</li>
+
+  <li><strong>Watch the bus.</strong> After a few seconds you'll see (trimmed a little):
+<pre class="out"><code>node1/usart6: [… virt: 0.1ms …] [node1] up: sending id=0x101 every 500 ms
+node2/usart6: [… virt: 0.1ms …] [node2] up: sending id=0x102 every 600 ms
+node3/usart6: [… virt: 0.1ms …] [node3] up: sending id=0x103 every 700 ms
+node1/usart6: [… virt:  0.5s …] [node1] tx id=0x101 dlc=2 data: 01 00
+node2/usart6: [… virt:  0.5s …] [node2] rx id=0x101 dlc=2 data: 01 00
+node3/usart6: [… virt:  0.5s …] [node3] rx id=0x101 dlc=2 data: 01 00
+node2/usart6: [… virt:  0.6s …] [node2] tx id=0x102 dlc=2 data: 02 00
+node1/usart6: [… virt:  0.6s …] [node1] rx id=0x102 dlc=2 data: 02 00
+node3/usart6: [… virt:  0.6s …] [node3] rx id=0x102 dlc=2 data: 02 00
+node3/usart6: [… virt:  0.7s …] [node3] tx id=0x103 dlc=2 data: 03 00
+node1/usart6: [… virt:  0.7s …] [node1] rx id=0x103 dlc=2 data: 03 00
+node2/usart6: [… virt:  0.7s …] [node2] rx id=0x103 dlc=2 data: 03 00
+node1/usart6: [… virt:    1s …] [node1] tx id=0x101 dlc=2 data: 01 01</code></pre></li>
+
+  <li><strong>Stop it.</strong> Type <code>quit</code> and press <kbd>Enter</kbd> (the prompt shows <code>(node3)</code>), or press <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li>
+</ol>
+
+<h2>How to read a log line</h2>
+<pre><code>[19:24:12.4628] [INFO] node2/usart6: [host: 1.47s (+1.15s)|virt: 0.5s (+0.5s)] [node2] rx id=0x101 dlc=2 data: 01 00</code></pre>
+<table>
+  <tr><th>Part</th><th>Meaning</th></tr>
+  <tr><td><code>[19:24:12.4628] [INFO]</code></td><td>Clock on your computer, and the log level</td></tr>
+  <tr><td><code>node2/usart6:</code></td><td>Which board, and which UART the text came out of</td></tr>
+  <tr><td><code>host: 1.47s</code></td><td>Real time that has passed on your computer. The simulator may run slower or faster than real life; that's fine.</td></tr>
+  <tr><td><code>virt: 0.5s</code></td><td><strong>Simulated time</strong>, which is what the firmware sees. Use it to check periods: node1 sends at 0.5 s, 1.0 s, 1.5 s… The <code>(+…)</code> after each time is the gap since this UART's previous line.</td></tr>
+  <tr><td><code>[node2] rx id=0x101 …</code></td><td>What the firmware printed with <code>printf()</code></td></tr>
+</table>
+
+<div class="box note"><span class="tag">Harmless warnings</span>
+<p>At startup you'll see a few lines like <code>WARNING … flash_controller: Unhandled write … ICEN</code> and <code>rcc: Unhandled write … RESERVED</code>. They mean Renode doesn't model the flash cache or one reserved bit. Ignore them.</p>
+</div>
+
+<div class="box check"><span class="tag">Checkpoint</span>
+<ul>
+  <li>Which IDs does node1 receive? Does it ever receive <code>0x101</code>? Why not?</li>
+  <li>The second data byte goes 00, 01, 02… for each board separately. Where does it come from?</li>
+  <li>node3 sends at 0.7 s, 1.4 s, 2.1 s. Which line of <code>main.c</code> decides that?</li>
+</ul>
+</div>
+
+<h2>Peek at the LEDs</h2>
+<p>Renode has no picture of the board, but you can ask for any LED's state. While the simulation runs, type into the Renode prompt:</p>
+<pre class="term"><code>pause
+mach set "node1"
+gpioPortG.led_a State
+gpioPortG.led_b State
+start</code></pre>
+<p>Each <code>State</code> line prints <code>True</code> (on) or <code>False</code> (off). LED_A is bit 0 of the last counter node1 received, LED_B is bit 1, and so on up to LED_H (bit 7).</p>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter">
+<h1><span class="num">5</span>Walk through the code</h1>
+<p>Open <code>firmware/Core/Src/main.c</code>. It's organised like a CubeMX-generated file: CubeMX owns everything outside the <code>/* USER CODE BEGIN … */</code> / <code>/* USER CODE END … */</code> markers, and your code goes between them. When you regenerate a real project in CubeMX, code between the markers survives and code outside is overwritten.</p>
+
+<h2>5.1 One firmware, three boards</h2>
+<pre><code>#ifndef NODE_ID
+#define NODE_ID 1
+#endif
+
+#define HEARTBEAT_ID        (0x100U + NODE_ID)
+#define HEARTBEAT_PERIOD_MS (400U + 100U * NODE_ID)   /* 500, 600, 700 ms */</code></pre>
+<p>The Makefile passes <code>-DNODE_ID=1</code>, <code>2</code> or <code>3</code> to the compiler, so the same source produces three different boards. Everything else is identical.</p>
+
+<h2>5.2 The clock</h2>
+<p><code>SystemClock_Config()</code> takes the Dev-A's <strong>12 MHz crystal</strong> (HSE) through the PLL up to <strong>180 MHz</strong>, then divides it for the two peripheral buses:</p>
+<table>
+  <tr><th>Clock</th><th>Setting</th><th>Result</th></tr>
+  <tr><td>PLL</td><td>12 MHz ÷ M(6) × N(180) ÷ P(2)</td><td>180 MHz system clock</td></tr>
+  <tr><td>APB1</td><td>180 MHz ÷ 4</td><td><strong>45 MHz, which feeds CAN1 and CAN2</strong></td></tr>
+  <tr><td>APB2</td><td>180 MHz ÷ 2</td><td>90 MHz, which feeds USART6</td></tr>
+</table>
+
+<h2>5.3 CAN1 settings and bit timing</h2>
+<pre><code>static void MX_CAN1_Init(void)
+{
+  hcan1.Instance = CAN1;
+  hcan1.Init.Prescaler = 3;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
+  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_11TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_3TQ;
+  hcan1.Init.TimeTriggeredMode = DISABLE;
+  hcan1.Init.AutoBusOff = ENABLE;
+  hcan1.Init.AutoWakeUp = DISABLE;
+  hcan1.Init.AutoRetransmission = ENABLE;
+  hcan1.Init.ReceiveFifoLocked = DISABLE;
+  hcan1.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&amp;hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}</code></pre>
+<p>The bit rate is set by three numbers:</p>
+<pre><code>bit rate = APB1 clock / Prescaler / (1 + BS1 + BS2)
+         = 45 MHz     / 3         / (1 + 11 + 3)    = 1 000 000 bit/s
+sample point = (1 + BS1) / (1 + BS1 + BS2) = 12 / 15 = 80 %</code></pre>
+<table>
+  <tr><th>Setting</th><th>What it does</th></tr>
+  <tr><td><code>Mode</code></td><td><code>NORMAL</code> talks to the bus. <code>LOOPBACK</code> sends frames to itself (handy for testing one board alone).</td></tr>
+  <tr><td><code>AutoBusOff</code></td><td>If too many errors happen the controller goes “bus-off” to protect the bus. <code>ENABLE</code> lets it recover on its own.</td></tr>
+  <tr><td><code>AutoRetransmission</code></td><td>Resend a frame that wasn't acknowledged, or lost arbitration. Leave it on.</td></tr>
+  <tr><td><code>TransmitFifoPriority</code></td><td><code>DISABLE</code>: when several mailboxes are full, the lowest ID goes first. <code>ENABLE</code>: oldest first.</td></tr>
+</table>
+<div class="box warn"><span class="tag">If you change the clock</span>
+<p>If APB1 is not 45 MHz, the bit rate is wrong and real boards stop talking to each other or to the motors. In CubeMX, the CAN1 parameter page shows the resulting “Baud Rate”; always check it says 1000000.</p>
+</div>
+
+<h2>5.4 Pins: <code>stm32f4xx_hal_msp.c</code></h2>
+<p><code>HAL_CAN_Init()</code> calls <code>HAL_CAN_MspInit()</code>, which turns on the clocks, sets up the pins and enables the interrupt:</p>
+<pre><code>/* CAN1 on the Dev-A: PD0 = CAN1_RX, PD1 = CAN1_TX (from the schematic,
+ * NOT the CubeMX default of PA11/PA12). RX gets a pull-up. */
+GPIO_InitStruct.Pin = GPIO_PIN_0;
+GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+GPIO_InitStruct.Pull = GPIO_PULLUP;
+GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+GPIO_InitStruct.Alternate = GPIO_AF9_CAN1;
+HAL_GPIO_Init(GPIOD, &amp;GPIO_InitStruct);
+…
+HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 5, 0);
+HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);</code></pre>
+<p>The STM32 can route CAN1 to several different pins; the board designer picked PD0/PD1 and wired them to the transceiver. You find that in the <strong>schematic</strong>, not in CubeMX.</p>
+
+<h2>5.5 The filter: which frames do we keep?</h2>
+<pre><code>static void CAN_Filter_Config(void)
+{
+  CAN_FilterTypeDef filter = {0};
+  filter.FilterBank = 0;
+  filter.FilterMode = CAN_FILTERMODE_IDMASK;
+  filter.FilterScale = CAN_FILTERSCALE_32BIT;
+  filter.FilterIdHigh = 0x0000;
+  filter.FilterIdLow = 0x0000;
+  filter.FilterMaskIdHigh = 0x0000;
+  filter.FilterMaskIdLow = 0x0000;
+  filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+  filter.FilterActivation = ENABLE;
+  filter.SlaveStartFilterBank = 14;   /* banks 0-13 for CAN1, 14-27 for CAN2 */
+  …
+}</code></pre>
+<p>Until at least one filter is active, bxCAN <strong>throws every frame away</strong>, so you always need this. In <strong>mask mode</strong>, each mask bit says whether that ID bit matters:</p>
+<ul>
+  <li>mask bit <strong>1</strong> = “the received ID bit must equal the filter ID bit”</li>
+  <li>mask bit <strong>0</strong> = “don't care”</li>
+</ul>
+<p>An all-zero mask means “don't care about anything”, so every frame is accepted into FIFO0. In exercise 3 you'll change this to accept only one ID.</p>
+
+<h2>5.6 Start the controller</h2>
+<pre><code>CAN_Filter_Config();
+if (HAL_CAN_Start(&amp;hcan1) != HAL_OK) { Error_Handler(); }
+/* Call HAL_CAN_RxFifo0MsgPendingCallback() whenever a frame arrives */
+if (HAL_CAN_ActivateNotification(&amp;hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) { Error_Handler(); }</code></pre>
+<p><code>HAL_CAN_Init()</code> leaves the controller in <em>initialization mode</em>, off the bus. <code>HAL_CAN_Start()</code> joins the bus. <code>HAL_CAN_ActivateNotification()</code> turns on the “frame received” interrupt.</p>
+
+<h2>5.7 Sending a frame</h2>
+<pre><code>static void send_heartbeat(uint8_t counter)
+{
+  CAN_TxHeaderTypeDef header = {0};
+  header.StdId = HEARTBEAT_ID;     /* 11-bit identifier */
+  header.IDE = CAN_ID_STD;         /* standard (11-bit), not extended (29-bit) */
+  header.RTR = CAN_RTR_DATA;       /* a data frame, not a remote request */
+  header.DLC = 2;                  /* number of data bytes, 0..8 */
+  header.TransmitGlobalTime = DISABLE;
+
+  uint8_t data[2] = { NODE_ID, counter };
+  uint32_t mailbox;
+
+  if (HAL_CAN_GetTxMailboxesFreeLevel(&amp;hcan1) == 0)
+  {
+    printf("[node%d] tx skipped: all 3 mailboxes busy\r\n", NODE_ID);
+    return;
+  }
+  if (HAL_CAN_AddTxMessage(&amp;hcan1, &amp;header, data, &amp;mailbox) != HAL_OK) { … }
+  …
+}</code></pre>
+<p><code>HAL_CAN_AddTxMessage()</code> doesn't wait. It copies the frame into a free mailbox and returns; the controller sends it as soon as the bus is free and retries on its own if needed.</p>
+<p>The main loop calls <code>send_heartbeat()</code> on a timer built from <code>HAL_GetTick()</code>, which counts milliseconds since boot (SysTick interrupt):</p>
+<pre><code>if ((int32_t)(HAL_GetTick() - next_tx) &gt;= 0)
+{
+  next_tx += HEARTBEAT_PERIOD_MS;
+  send_heartbeat(counter++);
+}</code></pre>
+<p class="small">Writing it as a subtraction keeps working when the 32-bit millisecond counter wraps around after 49 days.</p>
+
+<h2>5.8 Receiving a frame</h2>
+<figure>
+  <svg viewBox="0 0 680 204" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica Neue, Arial, sans-serif">
+    <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6470"/></marker></defs>
+    <text x="10" y="14" font-size="10" font-weight="700" fill="#5d6470" letter-spacing="1">HARDWARE (bxCAN)</text>
+    <g font-size="10.5" text-anchor="middle" fill="#1b1d21">
+      <rect x="10" y="22" width="145" height="44" rx="5" fill="#eef0f3" stroke="#9aa3b0"/><text x="82" y="42">frame on the bus</text><text x="82" y="56" font-size="9" fill="#5d6470">ID 0x102, 2 bytes</text>
+      <rect x="180" y="22" width="145" height="44" rx="5" fill="#eef0f3" stroke="#9aa3b0"/><text x="252" y="42">filter bank 0</text><text x="252" y="56" font-size="9" fill="#5d6470">keep or drop</text>
+      <rect x="350" y="22" width="145" height="44" rx="5" fill="#eef0f3" stroke="#9aa3b0"/><text x="422" y="42">RX FIFO0</text><text x="422" y="56" font-size="9" fill="#5d6470">holds up to 3 frames</text>
+      <rect x="520" y="22" width="150" height="44" rx="5" fill="#eef0f3" stroke="#9aa3b0"/><text x="595" y="42">CAN1_RX0 interrupt</text><text x="595" y="56" font-size="9" fill="#5d6470">stm32f4xx_it.c</text>
+    </g>
+    <line x1="155" y1="44" x2="178" y2="44" stroke="#5d6470" stroke-width="1.4" marker-end="url(#a2)"/>
+    <line x1="325" y1="44" x2="348" y2="44" stroke="#5d6470" stroke-width="1.4" marker-end="url(#a2)"/>
+    <line x1="495" y1="44" x2="518" y2="44" stroke="#5d6470" stroke-width="1.4" marker-end="url(#a2)"/>
+    <line x1="595" y1="66" x2="595" y2="106" stroke="#5d6470" stroke-width="1.4" marker-end="url(#a2)"/>
+
+    <rect x="345" y="96" width="330" height="104" rx="7" fill="none" stroke="#c63a3a" stroke-dasharray="4 3"/>
+    <text x="668" y="192" font-size="9" fill="#c63a3a" text-anchor="end">inside the interrupt: keep it short</text>
+    <rect x="5" y="96" width="330" height="104" rx="7" fill="none" stroke="#2453b8" stroke-dasharray="4 3"/>
+    <text x="12" y="192" font-size="9" fill="#2453b8">main loop: take your time</text>
+
+    <g font-size="10.5" text-anchor="middle" fill="#1b1d21">
+      <rect x="520" y="108" width="150" height="56" rx="5" fill="#fff" stroke="#9aa3b0"/><text x="595" y="128">HAL_CAN_IRQHandler</text><text x="595" y="142" font-size="9" fill="#5d6470">HAL works out why</text><text x="595" y="154" font-size="9" fill="#5d6470">the interrupt fired</text>
+      <rect x="355" y="108" width="145" height="56" rx="5" fill="#e8eefb" stroke="#2453b8"/><text x="427" y="126" font-size="9.5">HAL_CAN_RxFifo0</text><text x="427" y="139" font-size="9.5">MsgPendingCallback</text><text x="427" y="154" font-size="9" fill="#2453b8">your code: copy frame out</text>
+      <rect x="180" y="108" width="145" height="56" rx="5" fill="#fff" stroke="#9aa3b0"/><text x="252" y="132">rx_queue[8]</text><text x="252" y="148" font-size="9" fill="#5d6470">our own buffer</text>
+      <rect x="15" y="108" width="145" height="56" rx="5" fill="#e8eefb" stroke="#2453b8"/><text x="87" y="126">rx_pop()</text><text x="87" y="140" font-size="9" fill="#2453b8">print_frame()</text><text x="87" y="153" font-size="9" fill="#2453b8">show_on_leds()</text>
+    </g>
+    <line x1="520" y1="136" x2="502" y2="136" stroke="#5d6470" stroke-width="1.4" marker-end="url(#a2)"/>
+    <line x1="355" y1="136" x2="327" y2="136" stroke="#5d6470" stroke-width="1.4" marker-end="url(#a2)"/>
+    <line x1="180" y1="136" x2="162" y2="136" stroke="#5d6470" stroke-width="1.4" marker-end="url(#a2)"/>
+  </svg>
+  <figcaption>The path of a received frame. Hardware does the left-to-right top row; your code handles the bottom row.</figcaption>
+</figure>
+<p>When a frame passes the filter and lands in FIFO0, the CPU jumps to <code>CAN1_RX0_IRQHandler()</code>, which calls the HAL, which calls <strong>your callback</strong>:</p>
+<pre><code>void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+  RxFrame *slot = &amp;rx_queue[rx_head];
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &amp;slot-&gt;header, slot-&gt;data) != HAL_OK)
+  {
+    return;
+  }
+
+  uint32_t next = (rx_head + 1) % RX_QUEUE_LEN;
+  if (next == rx_tail)
+  {
+    rx_dropped++;   /* queue full: this frame is lost */
+    return;
+  }
+  rx_head = next;
+}</code></pre>
+<p>The callback only copies the frame out of the hardware FIFO into our own queue. It does <strong>not</strong> print. Printing 40 characters at 115200 baud takes about 3.5 ms, and while an interrupt runs, other interrupts of the same or lower priority wait. On a robot that could mean missed motor feedback. Slow work belongs in the main loop:</p>
+<pre><code>RxFrame f;
+while (rx_pop(&amp;f))
+{
+  print_frame(&amp;f);
+  if (f.header.DLC &gt;= 2)
+  {
+    show_on_leds(f.data[1]);
+  }
+}</code></pre>
+<p><code>rx_pop()</code> switches interrupts off for a few instructions (<code>__disable_irq()</code> … <code>__enable_irq()</code>) so the callback can't change the queue halfway through a read. That short protected stretch is called a <strong>critical section</strong>.</p>
+
+<h2>5.9 LEDs</h2>
+<pre><code>/* LED_A shows bit 0, LED_H shows bit 7. The LEDs are wired active-low:
+ * writing 0 (RESET) to the pin turns the LED on. */
+static void show_on_leds(uint8_t value)
+{
+  for (int bit = 0; bit &lt; 8; bit++)
+  {
+    GPIO_PinState state = ((value &gt;&gt; bit) &amp; 1U) ? GPIO_PIN_RESET : GPIO_PIN_SET;
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_A_Pin &lt;&lt; bit, state);
+  }
+}</code></pre>
+<p>On the Dev-A, each LED sits between 3.3 V (through a 1 kΩ resistor) and its pin, PG1–PG8. Current only flows, and the LED only lights, when the pin is <strong>low</strong>. That's called <strong>active-low</strong>, and it's why <code>MX_GPIO_Init()</code> sets the pins high first: all LEDs start off.</p>
+
+<h2>5.10 printf</h2>
+<p><code>printf()</code> doesn't know about UARTs. The C library calls <code>_write()</code> to output characters, and <code>main.c</code> provides one that sends them out of USART6:</p>
+<pre><code>int _write(int file, char *ptr, int len)
+{
+  (void)file;
+  HAL_UART_Transmit(&amp;huart6, (uint8_t *)ptr, (uint16_t)len, HAL_MAX_DELAY);
+  return len;
+}</code></pre>
+<p>In the simulator, Renode prints whatever arrives on USART6 into its log; on a real board you'd read it with a USB-to-serial adapter (chapter 8).</p>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter">
+<h1><span class="num">6</span>Exercises</h1>
+<p>Do them in order. After every change: save, run <code>make sim</code> (it rebuilds automatically), compare with the expected output, then <code>quit</code>. Solutions are in Appendix A; try first.</p>
+<div class="box note"><span class="tag">Undo everything</span>
+<p>To get the original <code>main.c</code> back at any time: <code>git checkout firmware/Core/Src/main.c</code>. To keep your work but start fresh: <code>git stash</code>.</p>
+</div>
+
+<h2>Exercise 1: Read the bus (no code)</h2>
+<p>Run <code>make sim</code> and answer, using only the log:</p>
+<ol>
+  <li>At 1.4 s simulated time, which boards send and which receive?</li>
+  <li>How many frames does node2 receive in the first 2 seconds? Predict first, then count.</li>
+  <li>What is the last counter node1 has received at 1.85 s? Pause there and check its LEDs with <code>gpioPortG.led_a State</code> etc. Do they match the binary value?</li>
+</ol>
+
+<h2>Exercise 2: Send a 16-bit number</h2>
+<p><strong>Goal:</strong> each heartbeat carries 4 bytes. Bytes 2 and 3 hold a 16-bit value, <code>NODE_ID × 1000 + counter</code>, <strong>high byte first</strong> (“big-endian”, the order DJI motors use). Receivers print the decoded value.</p>
+<ol>
+  <li>In <code>send_heartbeat()</code>: set <code>DLC</code> to 4 and build a 4-byte <code>data[]</code>. Use <code>value &gt;&gt; 8</code> for the high byte and <code>value &amp; 0xFF</code> for the low byte.</li>
+  <li>In <code>print_frame()</code>: if <code>DLC &gt;= 4</code>, rebuild the value with <code>(data[2] &lt;&lt; 8) | data[3]</code> and print it.</li>
+</ol>
+<p>Expected:</p>
+<pre class="out"><code>[node1] tx id=0x101 dlc=4 value=1000
+[node2] rx id=0x101 dlc=4 data: 01 00 03 E8  -&gt; value=1000
+[node3] rx id=0x101 dlc=4 data: 01 00 03 E8  -&gt; value=1000
+[node2] tx id=0x102 dlc=4 value=2000
+[node1] rx id=0x102 dlc=4 data: 02 00 07 D0  -&gt; value=2000</code></pre>
+<p><strong>Think about it:</strong> 1000 is <code>0x03E8</code>. What would the receiver print if it got the byte order backwards?</p>
+
+<h2>Exercise 3: Filters</h2>
+<p><strong>Goal:</strong> every board accepts <strong>only ID 0x101</strong> (node1's heartbeat). Change only <code>CAN_Filter_Config()</code>.</p>
+<p>In 32-bit mask mode, the 11-bit standard ID sits in the <strong>top 11 bits</strong> of the 32-bit filter register, so inside the 16-bit <code>FilterIdHigh</code> / <code>FilterMaskIdHigh</code> fields it's shifted left by 5:</p>
+<table>
+  <tr><th>Register bits</th><th>31 … 21</th><th>20 … 3</th><th>2</th><th>1</th><th>0</th></tr>
+  <tr><td>Meaning</td><td>STID[10:0], the standard ID</td><td>EXID (extended IDs only)</td><td>IDE</td><td>RTR</td><td>0</td></tr>
+  <tr><td>HAL field</td><td colspan="5"><code>FilterIdHigh</code> holds bits 31…16 and <code>FilterIdLow</code> holds bits 15…0, so the standard ID lands in bits 15…5 of <code>FilterIdHigh</code>.</td></tr>
+</table>
+<ol>
+  <li>Set the filter ID to 0x101 (remember the shift).</li>
+  <li>Set the mask so all 11 ID bits must match: 0x7FF, shifted the same way.</li>
+</ol>
+<p>Expected: node1 receives <strong>nothing</strong> (it only hears others, and only 0x101 is allowed). node2 and node3 receive only 0x101:</p>
+<pre class="out"><code>[node1] tx id=0x101 dlc=2 data: 01 00
+[node2] rx id=0x101 dlc=2 data: 01 00
+[node3] rx id=0x101 dlc=2 data: 01 00
+[node2] tx id=0x102 dlc=2 data: 02 00
+[node3] tx id=0x103 dlc=2 data: 03 00
+[node1] tx id=0x101 dlc=2 data: 01 01</code></pre>
+<p><strong>Think about it:</strong> which mask accepts <em>both</em> 0x102 and 0x103 but nothing else? (Hint: they differ only in bit 0.)</p>
+
+<h2>Exercise 4: A DJI-style motor command</h2>
+<p>DJI's C620 motor controllers listen for <strong>ID 0x200</strong>: 8 bytes holding four signed 16-bit current commands, for motors 1 to 4, each high byte first (Appendix B). Let's fake it.</p>
+<p><strong>Goal:</strong></p>
+<ul>
+  <li>node1 is the “main controller”. Right after each heartbeat it also sends ID 0x200 with the values <code>1000, -1000, 0, 0</code>.</li>
+  <li>node2 pretends to be motor 1 (bytes 0–1) and node3 pretends to be motor 2 (bytes 2–3). Each decodes <em>its own</em> value and prints it.</li>
+</ul>
+<ol>
+  <li>Write <code>send_motor_command(int16_t m1, int16_t m2, int16_t m3, int16_t m4)</code> next to <code>send_heartbeat()</code>, and add its prototype in the <code>USER CODE PFP</code> block.</li>
+  <li>In the main loop, call it after <code>send_heartbeat()</code>, but only when <code>NODE_ID == 1</code>.</li>
+  <li>In the receive loop: if the ID is 0x200 and this isn't node1, pick bytes <code>2 × (NODE_ID − 2)</code> and the one after, combine them into an <code>int16_t</code>, and print it.</li>
+</ol>
+<p>Expected:</p>
+<pre class="out"><code>[node2] rx id=0x200 dlc=8 data: 03 E8 FC 18 00 00 00 00
+[node3] rx id=0x200 dlc=8 data: 03 E8 FC 18 00 00 00 00
+[node2] my current command = 1000
+[node3] my current command = -1000</code></pre>
+<p><strong>Think about it:</strong> −1000 arrives as <code>FC 18</code>. Why? (Look up “two's complement”.) And why do the LEDs suddenly show <code>11101000</code> after a 0x200 frame?</p>
+</section>
+
+<!-- ============================================================ 7 -->
+<section class="flow">
+<h1><span class="num">7</span>Check your work automatically</h1>
+<p>The repository has an automatic test in <code>sim/can_bus.robot</code>, written for Renode's Robot Framework integration. It starts the three boards and checks the serial output and LEDs for you:</p>
+<table>
+  <tr><th>Test</th><th>Passes when…</th></tr>
+  <tr><td>Every Node Hears The Other Two</td><td>each board prints <code>rx</code> lines for the other two IDs</td></tr>
+  <tr><td>No Node Hears Itself</td><td>no board prints an <code>rx</code> line for its own ID</td></tr>
+  <tr><td>LEDs Show The Received Counter In Binary</td><td>after node2 receives counter 1, LED_A is on and LED_B is off</td></tr>
+</table>
+<pre class="term"><code>make test</code></pre>
+<p>When it finishes, each test is reported as <code>OK</code> and the run ends with <code>Tests finished successfully :)</code>. Details are written to <code>log.html</code>, which you can open in a browser.</p>
+<div class="box note"><span class="tag">Expected failures</span>
+<p>The test checks the <em>original</em> behaviour. After exercise 3 (filters), “Every Node Hears The Other Two” fails, and it should: the boards really don't hear each other any more.</p>
+</div>
+<div class="box note"><span class="tag">On a Mac</span>
+<p><code>renode-test</code> needs a few Python packages the first time:
+<code>python3 -m pip install -r /Applications/Renode.app/Contents/MacOS/tests/requirements.txt</code>,
+then <code>make test RENODE_TEST=/Applications/Renode.app/Contents/MacOS/renode-test</code>. Codespaces and <code>setup.sh</code> already handle this.</p>
+</div>
+<p>The same test also runs on GitHub on every push (<code>.github/workflows/ci.yml</code>), so a green check mark on the repository means the project builds and works.</p>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter">
+<h1><span class="num">8</span>From the simulator to real boards</h1>
+
+<h2>8.1 What the simulator does not check</h2>
+<p>Renode models CAN at the level of whole frames. Several things that break real buses are invisible in the simulator:</p>
+<table>
+  <tr><th>On real hardware</th><th>In Renode</th></tr>
+  <tr><td>CAN1 must be on <strong>PD0/PD1</strong> (the pins wired to the transceiver)</td><td>Pin choice is ignored. PA11/PA12 would “work” too.</td></tr>
+  <tr><td><code>CAN1_RX</code> needs a pull-up</td><td>Not modeled</td></tr>
+  <tr><td>All boards must use the <strong>same bit rate</strong></td><td>Bit timing is stored but ignored. A board at 500 kbit/s still “works”.</td></tr>
+  <tr><td>Someone must <strong>ACK</strong>; errors, retries and bus-off happen</td><td>Every frame succeeds instantly, even with no other board.</td></tr>
+  <tr><td>Arbitration takes time; a busy bus delays frames</td><td>Frames are delivered instantly, no contention.</td></tr>
+  <tr><td>Wiring, termination, loose connectors, noise</td><td>Not modeled</td></tr>
+</table>
+<p class="small">The repository also works around one Renode quirk: ST's <code>HAL_CAN_Init()</code> requests initialization mode while the controller is still asleep, which real bxCAN allows and Renode's model didn't. A one-line hook in <code>sim/dev-a.repl</code> fixes that. You don't need it on hardware.</p>
+
+<h2>8.2 What you need</h2>
+<ul>
+  <li>2 or 3 Dev-A boards, powered the way your team normally does it</li>
+  <li>CAN cables between the boards' <strong>CAN1</strong> ports (CAN_H to CAN_H, CAN_L to CAN_L)</li>
+  <li>An ST-Link (SWD) to flash, and a 3.3 V USB-to-serial adapter to read USART6</li>
+</ul>
+
+<h2>8.3 Wiring checks</h2>
+<ul>
+  <li><strong>Termination.</strong> With everything powered off, measure the resistance between CAN_H and CAN_L. About <strong>60 Ω</strong> (two 120 Ω resistors in parallel) is right. The Dev-A schematic shows a 120 Ω resistor next to each MCP2562 transceiver, so check how many are actually connected on your bus.</li>
+  <li><strong>Serial.</strong> USART6 is TX = PG14, RX = PG9 on the MCU. Find which connector they go to in the Dev-A schematic. Connect adapter RX to board TX, adapter TX to board RX, and GND to GND. Open the port at <strong>115200 baud, 8N1</strong>.</li>
+</ul>
+
+<h2>8.4 Flash each board</h2>
+<p>Each board gets its own file. With STM32CubeProgrammer's command-line tool:</p>
+<pre class="term"><code>STM32_Programmer_CLI -c port=SWD -w build/node1.elf -v -rst     # first board
+STM32_Programmer_CLI -c port=SWD -w build/node2.elf -v -rst     # second board</code></pre>
+<p>You should see the same <code>tx</code> / <code>rx</code> lines as in the simulator, and the LEDs counting in binary.</p>
+
+<h2>8.5 Rebuild this project in CubeMX</h2>
+<p>Your team's projects start in STM32CubeMX. To recreate this one (good practice!), create a new project for <strong>STM32F427IIHx</strong> and set:</p>
+<table>
+  <tr><th>Where in CubeMX</th><th>Setting</th></tr>
+  <tr><td>System Core → RCC</td><td>High Speed Clock (HSE): Crystal/Ceramic Resonator</td></tr>
+  <tr><td>Clock Configuration</td><td>Input 12 MHz, PLL source HSE, /M = 6, ×N = 180, /P = 2, SYSCLK = PLLCLK (180 MHz), APB1 ÷4 (45 MHz), APB2 ÷2 (90 MHz)</td></tr>
+  <tr><td>Connectivity → CAN1</td><td>Activated. Move the pins to <strong>PD0</strong> (CAN1_RX) and <strong>PD1</strong> (CAN1_TX). GPIO Settings: PD0 pull-up. Parameters: Prescaler 3, Time Quanta in Bit Segment 1 = 11, Bit Segment 2 = 3, ReSynchronization Jump Width = 1; check that Baud Rate shows 1000000. NVIC Settings: enable “CAN1 RX0 interrupt”.</td></tr>
+  <tr><td>Connectivity → USART6</td><td>Asynchronous, 115200 baud. Pins <strong>PG14</strong> (TX) and <strong>PG9</strong> (RX).</td></tr>
+  <tr><td>Pinout view</td><td>PG1–PG8: GPIO_Output, labels LED_A…LED_H. GPIO settings: output level <strong>High</strong> (LEDs off).</td></tr>
+  <tr><td>Project Manager</td><td>Toolchain: CMake or Makefile. Generate code.</td></tr>
+</table>
+<p>Then copy everything between the <code>USER CODE</code> markers from this repository's <code>main.c</code> into the generated <code>main.c</code>.</p>
+
+<h2>8.6 First-time hardware problems</h2>
+<table>
+  <tr><th>Symptom</th><th>Likely cause</th></tr>
+  <tr><td><code>tx skipped: all 3 mailboxes busy</code></td><td>Nobody ACKs: the other board isn't running, isn't wired to CAN1, uses a different bit rate, or wrong pins in CubeMX.</td></tr>
+  <tr><td>Nothing at all on the serial port</td><td>TX/RX swapped, missing GND, wrong baud rate, or stuck in <code>Error_Handler()</code> (check with the debugger).</td></tr>
+  <tr><td>Works for a while, then stops</td><td>Bus-off from errors: check termination and connectors.</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="flow">
+<h1><span class="num">9</span>Troubleshooting</h1>
+<table>
+  <tr><th>Message</th><th>Fix</th></tr>
+  <tr><td><code>arm-none-eabi-gcc: No such file or directory</code></td><td>The compiler isn't on your <code>PATH</code>. Pass it: <code>make PREFIX=/path/to/bin/arm-none-eabi-</code>.</td></tr>
+  <tr><td><code>bad CPU type in executable</code> (Mac)</td><td>You're using an Intel-only compiler (e.g. from STM32CubeIDE). Use the arm64 ARM GNU toolchain (chapter 3).</td></tr>
+  <tr><td><code>renode: command not found</code></td><td><code>make sim RENODE=/path/to/renode</code></td></tr>
+  <tr><td>Renode can't download <code>STM32F40x.svd.gz</code></td><td>The first run needs internet. Try again on a working connection.</td></tr>
+  <tr><td>Only the three <code>up:</code> lines, then nothing</td><td>The firmware is stuck, usually in <code>Error_Handler()</code>. In the Renode prompt: <code>pause</code>, <code>mach set "node1"</code>, <code>cpu PC</code>, then look up the address with <code>arm-none-eabi-addr2line -f -e build/node1.elf 0x…</code>.</td></tr>
+  <tr><td>No <code>rx</code> lines but <code>tx</code> lines appear</td><td>Your filter rejects everything, or you removed <code>HAL_CAN_ActivateNotification()</code>.</td></tr>
+  <tr><td>Compile error after an exercise</td><td>Read the <em>first</em> error line; later ones are often caused by it. Missing prototype? Missing semicolon?</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ A -->
+<section class="chapter">
+<h1><span class="num">A</span>Solutions</h1>
+<p>These were all built and run in the simulator; the expected output in chapter 6 comes from them.</p>
+
+<h2>Exercise 2</h2>
+<p>In <code>send_heartbeat()</code>:</p>
+<pre><code>header.DLC = 4;
+…
+uint16_t value = NODE_ID * 1000 + counter;
+uint8_t data[4] = { NODE_ID, counter, value &gt;&gt; 8, value &amp; 0xFF };
+…
+printf("[node%d] tx id=0x%03lX dlc=%lu value=%u\r\n",
+       NODE_ID, header.StdId, header.DLC, value);</code></pre>
+<p>In <code>print_frame()</code>, just before the final <code>printf("\r\n")</code>:</p>
+<pre><code>if (f-&gt;header.DLC &gt;= 4)
+{
+  uint16_t value = (f-&gt;data[2] &lt;&lt; 8) | f-&gt;data[3];
+  printf("  -&gt; value=%u", value);
+}</code></pre>
+<p class="small">Backwards byte order would turn 1000 (0x03E8) into 0xE803 = 59395.</p>
+
+<h2>Exercise 3</h2>
+<pre><code>filter.FilterIdHigh = 0x101 &lt;&lt; 5;
+filter.FilterIdLow = 0x0000;
+filter.FilterMaskIdHigh = 0x7FF &lt;&lt; 5;
+filter.FilterMaskIdLow = 0x0000;</code></pre>
+<p class="small">To accept 0x102 and 0x103: ID <code>0x102 &lt;&lt; 5</code>, mask <code>0x7FE &lt;&lt; 5</code> (bit 0 is “don't care”).</p>
+
+<h2>Exercise 4</h2>
+<p>Prototype, in <code>USER CODE BEGIN PFP</code>:</p>
+<pre><code>static void send_motor_command(int16_t m1, int16_t m2, int16_t m3, int16_t m4);</code></pre>
+<p>The function, in <code>USER CODE BEGIN 4</code>:</p>
+<pre><code>static void send_motor_command(int16_t m1, int16_t m2, int16_t m3, int16_t m4)
+{
+  CAN_TxHeaderTypeDef header = {0};
+  header.StdId = 0x200;
+  header.IDE = CAN_ID_STD;
+  header.RTR = CAN_RTR_DATA;
+  header.DLC = 8;
+  uint8_t data[8] = { m1 &gt;&gt; 8, m1, m2 &gt;&gt; 8, m2, m3 &gt;&gt; 8, m3, m4 &gt;&gt; 8, m4 };
+  uint32_t mailbox;
+  HAL_CAN_AddTxMessage(&amp;hcan1, &amp;header, data, &amp;mailbox);
+}</code></pre>
+<p>The main loop, in <code>USER CODE BEGIN 3</code>:</p>
+<pre><code>if ((int32_t)(HAL_GetTick() - next_tx) &gt;= 0)
+{
+  next_tx += HEARTBEAT_PERIOD_MS;
+  send_heartbeat(counter++);
+  if (NODE_ID == 1)
+  {
+    send_motor_command(1000, -1000, 0, 0);
+  }
+}
+
+RxFrame f;
+while (rx_pop(&amp;f))
+{
+  print_frame(&amp;f);
+  if (f.header.StdId == 0x200 &amp;&amp; NODE_ID != 1)
+  {
+    int slot = NODE_ID - 2;   /* node2 = motor 1 = bytes 0-1 */
+    int16_t current = (int16_t)((f.data[2 * slot] &lt;&lt; 8) | f.data[2 * slot + 1]);
+    printf("[node%d] my current command = %d\r\n", NODE_ID, current);
+  }
+  if (f.header.DLC &gt;= 2)
+  {
+    show_on_leds(f.data[1]);
+  }
+}</code></pre>
+<p class="small">−1000 in 16-bit two's complement is 65536 − 1000 = 64536 = 0xFC18. The LEDs show <code>data[1]</code> of <em>every</em> frame, and in a 0x200 frame that's the low byte of motor 1's command, 0xE8 = 11101000.</p>
+</section>
+
+<!-- ============================================================ B -->
+<section class="chapter">
+<h1><span class="num">B</span>DJI motor CAN frames</h1>
+<p>This is what exercise 4 was preparing you for. All values are signed 16-bit, <strong>high byte first</strong>, at 1 Mbit/s. Always check the official manual for your motor and ESC (e.g. the C620 and GM6020 user guides); this table is a summary.</p>
+
+<h2>C620 / C610 ESCs (M3508, M2006 motors)</h2>
+<table>
+  <tr><th>Direction</th><th>ID</th><th>Data</th></tr>
+  <tr><td>Command (you send)</td><td><code>0x200</code></td><td>bytes 0–1: motor 1 · 2–3: motor 2 · 4–5: motor 3 · 6–7: motor 4. C620 current command −16384…16384 (about −20…20 A).</td></tr>
+  <tr><td>Command (you send)</td><td><code>0x1FF</code></td><td>the same layout for motors 5–8</td></tr>
+  <tr><td>Feedback (motor sends)</td><td><code>0x200 + motor ID</code><br>(0x201–0x208)</td><td>bytes 0–1: rotor angle 0…8191 (= 0…360°) · 2–3: speed in rpm · 4–5: actual torque current · 6: temperature °C (C620) · 7: unused</td></tr>
+</table>
+
+<h2>GM6020 gimbal motor</h2>
+<table>
+  <tr><th>Direction</th><th>ID</th><th>Data</th></tr>
+  <tr><td>Command</td><td><code>0x1FF</code> / <code>0x2FF</code></td><td>four voltage commands (−30000…30000) for motor IDs 1–4 / 5–7</td></tr>
+  <tr><td>Feedback</td><td><code>0x204 + motor ID</code></td><td>same layout as the C620 feedback</td></tr>
+</table>
+<div class="box warn"><span class="tag">Watch out</span>
+<p>Command ID <code>0x1FF</code> is shared: C620 motors 5–8 and GM6020 motors 1–4 both listen to it. Two devices must never decode the same bytes on the same bus, so plan your motor IDs.</p>
+</div>
+<p>Reading feedback is exactly the decoding you did in exercises 2 and 4: check the ID, then combine two bytes into an <code>int16_t</code>.</p>
+</section>
+
+<!-- ============================================================ C -->
+<section class="chapter">
+<h1><span class="num">C</span>Renode cheat sheet</h1>
+<p>Type these at the Renode prompt while <code>make sim</code> is running.</p>
+<table>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td><code>pause</code> / <code>start</code></td><td>Freeze / resume all three boards</td></tr>
+  <tr><td><code>quit</code></td><td>Exit Renode</td></tr>
+  <tr><td><code>mach set "node2"</code></td><td>Choose which board the next commands talk to</td></tr>
+  <tr><td><code>gpioPortG.led_a State</code></td><td>Is LED_A on (<code>True</code>) or off (<code>False</code>)?</td></tr>
+  <tr><td><code>cpu PC</code></td><td>Where is this board's CPU right now?</td></tr>
+  <tr><td><code>sysbus ReadDoubleWord 0x4000641C</code></td><td>Read a register directly (this one is <code>CAN1_BTR</code>)</td></tr>
+  <tr><td><code>emulation RunFor "00:00:02"</code></td><td>Run for exactly 2 s of simulated time, then pause</td></tr>
+  <tr><td><code>machine Reset</code></td><td>Reset the selected board (like pressing its reset button)</td></tr>
+  <tr><td><code>help</code></td><td>List everything</td></tr>
+</table>
+
+<h2>How the simulation is put together</h2>
+<p><code>sim/dev-a.repl</code> describes one board: it starts from Renode's generic STM32F4 file and adds the parts this project uses (USART6, the 8 LEDs, the 180 MHz SysTick, the CAN init fix). <code>sim/can_bus.resc</code> builds the bus:</p>
+<pre><code>emulation CreateCANHub "canHub"
+
+mach create "node1"
+machine LoadPlatformDescription $ORIGIN/dev-a.repl
+sysbus LoadELF $ORIGIN/../build/node1.elf
+connector Connect sysbus.can1 canHub
+showAnalyzer sysbus.usart6 Antmicro.Renode.Analyzers.LoggingUartAnalyzer
+… (the same for node2 and node3)</code></pre>
+<p>Want a fourth board? Copy one block, call it <code>node4</code>, add <code>4</code> to <code>NODES</code> in the Makefile, and run <code>make sim</code>.</p>
+
+<h2>Further reading</h2>
+<ul>
+  <li>STM32F427 reference manual (RM0090), chapter “Controller area network (bxCAN)”</li>
+  <li>ST's HAL manual UM1725, section “HAL CAN Generic Driver”</li>
+  <li>Renode documentation: <a href="https://renode.readthedocs.io">renode.readthedocs.io</a></li>
+  <li>Dev-A schematic and user manual from your team's resources</li>
+</ul>
+</section>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,24 @@
+name: build-and-test
+
+on: [push, pull_request]
+
+jobs:
+  sim:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain and Renode (same script as Codespaces)
+        run: bash .devcontainer/setup.sh
+      - name: Build firmware
+        run: make
+      - name: Run the Renode test
+        run: make test
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renode-test-report
+          path: |
+            log.html
+            report.html
+            robot_output.xml
