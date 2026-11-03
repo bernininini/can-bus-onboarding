@@ -7,12 +7,18 @@
   * Every node on the bus runs this same file. The only difference between
   * nodes is NODE_ID, which the Makefile passes in (-DNODE_ID=1, 2 or 3).
   *
-  * What each node does:
-  *   1. Every HEARTBEAT_PERIOD_MS it sends a "heartbeat" frame:
+  * When you're done, each node will:
+  *   - show its NODE_ID on the 8 LEDs at boot                    (Task 1)
+  *   - start CAN1                                                (Task 2)
+  *   - every HEARTBEAT_PERIOD_MS send a "heartbeat" frame:       (Task 3)
   *        ID   = 0x100 + NODE_ID
   *        data = { NODE_ID, counter }
-  *   2. Every frame it receives is printed on USART6 and the counter byte
-  *      is shown in binary on the 8 user LEDs (LED_A = bit 0).
+  *   - receive the other nodes' frames, print them on USART6 and
+  *     show their counter in binary on the LEDs                  (Task 4)
+  *
+  * Your work goes in the four functions marked "TASK". Everything else is
+  * already done for you. The guide (docs/CAN-Bus-Onboarding.pdf) explains
+  * each task step by step.
   ******************************************************************************
   */
 /* USER CODE END Header */
@@ -55,11 +61,18 @@ static void MX_CAN1_Init(void);
 static void MX_USART6_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
-static void CAN_Filter_Config(void);
-static void send_heartbeat(uint8_t counter);
-static int rx_pop(RxFrame *out);
-static void print_frame(const RxFrame *f);
-static void show_on_leds(uint8_t value);
+/* Your tasks */
+static void show_on_leds(uint8_t value);         /* Task 1 */
+static void can_start(void);                     /* Task 2 (+ Task 4, part A) */
+static void send_heartbeat(uint8_t counter);     /* Task 3 */
+/* Task 4, part B is HAL_CAN_RxFifo0MsgPendingCallback(), further down */
+
+/* Helpers that are already written for you (not static, so the compiler
+ * doesn't warn while your tasks don't use them yet) */
+void print_tx(const CAN_TxHeaderTypeDef *header, const uint8_t *data);
+void print_rx(const CAN_RxHeaderTypeDef *header, const uint8_t *data);
+void rx_push(const CAN_RxHeaderTypeDef *header, const uint8_t *data);
+int rx_pop(RxFrame *out);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -84,16 +97,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   setvbuf(stdout, NULL, _IONBF, 0);   /* print immediately, no buffering */
 
-  CAN_Filter_Config();
-  if (HAL_CAN_Start(&hcan1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* Call HAL_CAN_RxFifo0MsgPendingCallback() whenever a frame arrives */
-  if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  show_on_leds(NODE_ID);   /* each board shows its own number at boot */
+  can_start();
 
   printf("[node%d] up: sending id=0x%03X every %u ms\r\n",
          NODE_ID, (unsigned)HEARTBEAT_ID, (unsigned)HEARTBEAT_PERIOD_MS);
@@ -105,16 +110,18 @@ int main(void)
   while (1)
   {
     /* USER CODE BEGIN 3 */
+    /* Every HEARTBEAT_PERIOD_MS milliseconds, send one heartbeat. */
     if ((int32_t)(HAL_GetTick() - next_tx) >= 0)
     {
       next_tx += HEARTBEAT_PERIOD_MS;
       send_heartbeat(counter++);
     }
 
+    /* Print every frame the receive callback has queued up. */
     RxFrame f;
     while (rx_pop(&f))
     {
-      print_frame(&f);
+      print_rx(&f.header, f.data);
       if (f.header.DLC >= 2)
       {
         show_on_leds(f.data[1]);
@@ -125,78 +132,129 @@ int main(void)
 }
 
 /* USER CODE BEGIN 4 */
-/* Accept every frame into FIFO0. A mask bit of 0 means "don't care", so an
- * all-zero mask matches any ID. */
-static void CAN_Filter_Config(void)
+/* ========================================================================
+ * TASK 1: LEDs (GPIO)                                    guide: "Task 1"
+ * ------------------------------------------------------------------------
+ * Show `value` in binary on the 8 user LEDs: LED_A = bit 0 ... LED_H = bit 7.
+ * Example: value 5 = 0b00000101 -> LED_A and LED_C on, the rest off.
+ *
+ * Use:   HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET or GPIO_PIN_RESET)
+ * Know:  the LEDs are LED_A_Pin..LED_H_Pin on port LED_GPIO_Port (main.h).
+ *        They are ACTIVE-LOW: GPIO_PIN_RESET turns an LED ON.
+ * ======================================================================== */
+static void show_on_leds(uint8_t value)
 {
-  CAN_FilterTypeDef filter = {0};
-  filter.FilterBank = 0;
-  filter.FilterMode = CAN_FILTERMODE_IDMASK;
-  filter.FilterScale = CAN_FILTERSCALE_32BIT;
-  filter.FilterIdHigh = 0x0000;
-  filter.FilterIdLow = 0x0000;
-  filter.FilterMaskIdHigh = 0x0000;
-  filter.FilterMaskIdLow = 0x0000;
-  filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-  filter.FilterActivation = ENABLE;
-  filter.SlaveStartFilterBank = 14;   /* banks 0-13 for CAN1, 14-27 for CAN2 */
-
-  if (HAL_CAN_ConfigFilter(&hcan1, &filter) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  /* TODO (Task 1) */
+  (void)value;
 }
 
+/* ========================================================================
+ * TASK 2: Start CAN1                                     guide: "Task 2"
+ * ------------------------------------------------------------------------
+ * MX_CAN1_Init() has already set CAN1 to 1 Mbit/s, but the controller is
+ * still offline and throws away every frame. Bring it onto the bus:
+ *
+ *   1. Set up filter bank 0 to accept every frame into FIFO0:
+ *        fill in a CAN_FilterTypeDef, then HAL_CAN_ConfigFilter()
+ *   2. Join the bus:  HAL_CAN_Start()
+ *
+ * Both return HAL_OK on success. If one doesn't, call Error_Handler().
+ *
+ * (Task 4, part A, adds one more call at the end of this function.)
+ * ======================================================================== */
+static void can_start(void)
+{
+  /* TODO (Task 2) */
+}
+
+/* ========================================================================
+ * TASK 3: Send a frame                                   guide: "Task 3"
+ * ------------------------------------------------------------------------
+ * Send one heartbeat:  ID = HEARTBEAT_ID,  2 data bytes = { NODE_ID, counter }
+ *
+ *   1. Fill in a CAN_TxHeaderTypeDef: StdId, IDE, RTR, DLC
+ *   2. Put the data bytes in a uint8_t array
+ *   3. Queue it:  HAL_CAN_AddTxMessage(&hcan1, &header, data, &mailbox)
+ *   4. Show it in the log:  print_tx(&header, data)
+ *
+ * Extra: if HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) is 0, all 3 transmit
+ * mailboxes are full. Print a message and return instead of sending.
+ * ======================================================================== */
 static void send_heartbeat(uint8_t counter)
 {
-  CAN_TxHeaderTypeDef header = {0};
-  header.StdId = HEARTBEAT_ID;     /* 11-bit identifier */
-  header.IDE = CAN_ID_STD;         /* standard (11-bit), not extended (29-bit) */
-  header.RTR = CAN_RTR_DATA;       /* a data frame, not a remote request */
-  header.DLC = 2;                  /* number of data bytes, 0..8 */
-  header.TransmitGlobalTime = DISABLE;
-
-  uint8_t data[2] = { NODE_ID, counter };
-  uint32_t mailbox;
-
-  /* bxCAN has 3 transmit mailboxes. If nobody acknowledges our frames
-   * (e.g. we are alone on the bus) they stay full. */
-  if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0)
-  {
-    printf("[node%d] tx skipped: all 3 mailboxes busy\r\n", NODE_ID);
-    return;
-  }
-  if (HAL_CAN_AddTxMessage(&hcan1, &header, data, &mailbox) != HAL_OK)
-  {
-    printf("[node%d] tx failed\r\n", NODE_ID);
-    return;
-  }
-  printf("[node%d] tx id=0x%03lX dlc=%lu data: %02X %02X\r\n",
-         NODE_ID, header.StdId, header.DLC, data[0], data[1]);
+  /* TODO (Task 3) */
+  (void)counter;
 }
 
-/* Runs inside the CAN1 RX0 interrupt. Keep it short: copy the frame out of
- * the hardware FIFO into our queue and return. Printing happens in main(). */
+/* ========================================================================
+ * TASK 4: Receive frames                                 guide: "Task 4"
+ * ------------------------------------------------------------------------
+ * Part A: at the end of can_start(), switch on the "frame received"
+ *         interrupt:
+ *           HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING)
+ *
+ * Part B: HAL calls the function below from the CAN1 RX0 interrupt every
+ *         time a frame lands in FIFO0. In it:
+ *           1. Read the frame out of FIFO0:
+ *                HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &header, data)
+ *           2. Hand it to the main loop:  rx_push(&header, data)
+ *
+ * Do part B before you test part A. Keep this function short, and don't
+ * printf here: you're inside an interrupt.
+ * ======================================================================== */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-  RxFrame *slot = &rx_queue[rx_head];
-  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &slot->header, slot->data) != HAL_OK)
-  {
-    return;
-  }
+  /* TODO (Task 4, part B) */
+  (void)hcan;
+}
 
+/* ------------------------------------------------------------------------
+ * Helpers: already written, you don't need to change these.
+ * ------------------------------------------------------------------------ */
+
+/* Print a frame you sent, e.g.  [node1] tx id=0x101 dlc=2 data: 01 00 */
+void print_tx(const CAN_TxHeaderTypeDef *header, const uint8_t *data)
+{
+  printf("[node%d] tx id=0x%03lX dlc=%lu data:", NODE_ID, header->StdId, header->DLC);
+  for (uint32_t i = 0; i < header->DLC; i++)
+  {
+    printf(" %02X", data[i]);
+  }
+  printf("\r\n");
+}
+
+/* Print a frame you received, e.g.  [node2] rx id=0x101 dlc=2 data: 01 00 */
+void print_rx(const CAN_RxHeaderTypeDef *header, const uint8_t *data)
+{
+  printf("[node%d] rx id=0x%03lX dlc=%lu data:", NODE_ID, header->StdId, header->DLC);
+  for (uint32_t i = 0; i < header->DLC; i++)
+  {
+    printf(" %02X", data[i]);
+  }
+  printf("\r\n");
+}
+
+/* Called from the receive interrupt: copy one frame into the queue. */
+void rx_push(const CAN_RxHeaderTypeDef *header, const uint8_t *data)
+{
   uint32_t next = (rx_head + 1) % RX_QUEUE_LEN;
   if (next == rx_tail)
   {
     rx_dropped++;   /* queue full: this frame is lost */
     return;
   }
+  rx_queue[rx_head].header = *header;
+  for (uint32_t i = 0; i < 8; i++)
+  {
+    rx_queue[rx_head].data[i] = data[i];
+  }
   rx_head = next;
 }
 
-/* Take one frame out of the queue. Interrupts are switched off for a moment
- * so the CAN interrupt can't change the queue while we read it. */
-static int rx_pop(RxFrame *out)
+/* Called from the main loop: take one frame out of the queue. Interrupts
+ * are switched off for a moment so the CAN interrupt can't change the
+ * queue while we read it. Returns 1 if it got a frame, 0 if empty. */
+int rx_pop(RxFrame *out)
 {
   int got = 0;
   __disable_irq();
@@ -208,27 +266,6 @@ static int rx_pop(RxFrame *out)
   }
   __enable_irq();
   return got;
-}
-
-static void print_frame(const RxFrame *f)
-{
-  printf("[node%d] rx id=0x%03lX dlc=%lu data:", NODE_ID, f->header.StdId, f->header.DLC);
-  for (uint32_t i = 0; i < f->header.DLC; i++)
-  {
-    printf(" %02X", f->data[i]);
-  }
-  printf("\r\n");
-}
-
-/* LED_A shows bit 0, LED_H shows bit 7. The LEDs are wired active-low:
- * writing 0 (RESET) to the pin turns the LED on. */
-static void show_on_leds(uint8_t value)
-{
-  for (int bit = 0; bit < 8; bit++)
-  {
-    GPIO_PinState state = ((value >> bit) & 1U) ? GPIO_PIN_RESET : GPIO_PIN_SET;
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_A_Pin << bit, state);
-  }
 }
 /* USER CODE END 4 */
 

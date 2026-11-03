@@ -11,7 +11,11 @@ jobs:
         run: bash .devcontainer/setup.sh
       - name: Build firmware
         run: make
+      # main of this repository is the unfinished starter, so its tests are
+      # expected to fail. Everywhere else (the solution branch, students'
+      # own copies) the tests check the work.
       - name: Run the Renode test
+        if: github.repository != 'bernininini/can-bus-onboarding' || github.ref_name != 'main'
         run: make test
       - name: Upload test report
         if: always()
