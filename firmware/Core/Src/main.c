@@ -144,8 +144,11 @@ int main(void)
  * ======================================================================== */
 static void show_on_leds(uint8_t value)
 {
-  /* TODO (Task 1) */
-  (void)value;
+  for (int bit = 0; bit < 8; bit++)
+  {
+    GPIO_PinState state = ((value >> bit) & 1U) ? GPIO_PIN_RESET : GPIO_PIN_SET;
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_A_Pin << bit, state);
+  }
 }
 
 /* ========================================================================
@@ -164,7 +167,34 @@ static void show_on_leds(uint8_t value)
  * ======================================================================== */
 static void can_start(void)
 {
-  /* TODO (Task 2) */
+  /* Accept every frame into FIFO0. A mask bit of 0 means "don't care",
+   * so an all-zero mask matches any ID. */
+  CAN_FilterTypeDef filter = {0};
+  filter.FilterBank = 0;
+  filter.FilterMode = CAN_FILTERMODE_IDMASK;
+  filter.FilterScale = CAN_FILTERSCALE_32BIT;
+  filter.FilterIdHigh = 0x0000;
+  filter.FilterIdLow = 0x0000;
+  filter.FilterMaskIdHigh = 0x0000;
+  filter.FilterMaskIdLow = 0x0000;
+  filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+  filter.FilterActivation = ENABLE;
+  filter.SlaveStartFilterBank = 14;   /* banks 0-13 for CAN1, 14-27 for CAN2 */
+  if (HAL_CAN_ConfigFilter(&hcan1, &filter) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_CAN_Start(&hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* Task 4, part A: call HAL_CAN_RxFifo0MsgPendingCallback() on every frame */
+  if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* ========================================================================
@@ -182,8 +212,27 @@ static void can_start(void)
  * ======================================================================== */
 static void send_heartbeat(uint8_t counter)
 {
-  /* TODO (Task 3) */
-  (void)counter;
+  CAN_TxHeaderTypeDef header = {0};
+  header.StdId = HEARTBEAT_ID;     /* 11-bit identifier */
+  header.IDE = CAN_ID_STD;         /* standard (11-bit), not extended (29-bit) */
+  header.RTR = CAN_RTR_DATA;       /* a data frame, not a remote request */
+  header.DLC = 2;                  /* number of data bytes, 0..8 */
+  header.TransmitGlobalTime = DISABLE;
+
+  uint8_t data[2] = { NODE_ID, counter };
+  uint32_t mailbox;
+
+  if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0)
+  {
+    printf("[node%d] tx skipped: all 3 mailboxes busy\r\n", NODE_ID);
+    return;
+  }
+  if (HAL_CAN_AddTxMessage(&hcan1, &header, data, &mailbox) != HAL_OK)
+  {
+    printf("[node%d] tx failed\r\n", NODE_ID);
+    return;
+  }
+  print_tx(&header, data);
 }
 
 /* ========================================================================
@@ -204,8 +253,12 @@ static void send_heartbeat(uint8_t counter)
  * ======================================================================== */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-  /* TODO (Task 4, part B) */
-  (void)hcan;
+  CAN_RxHeaderTypeDef header;
+  uint8_t data[8];
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &header, data) == HAL_OK)
+  {
+    rx_push(&header, data);
+  }
 }
 
 /* ------------------------------------------------------------------------
